@@ -1,6 +1,6 @@
 import random
 random.seed(109)
-##test comment
+##Ari Branch
 class Mancala:
     def __init__(self, pits_per_player=6, stones_per_pit = 4):
         """
