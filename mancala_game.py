@@ -272,7 +272,7 @@ class Mancala:
     
 #Beginning of 100 games:
 
-game = Mancala
+game = Mancala()
 count = 0
 p1_win = 0
 p1_lose = 0
