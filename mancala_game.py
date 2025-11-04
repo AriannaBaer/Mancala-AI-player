@@ -8,7 +8,7 @@ class Mancala:
         """
         The constructor for the Mancala class defines several instance variables:
 
-        pits_per_player: This variable stores the number of pits each player has.
+        pits_per_player: This variabe stores the number of pits each player has.
         stones_per_pit: It represents the number of stones each pit contains at the start of any game.
         board: This data structure is responsible for managing the Mancala board.
         current_player: This variable takes the value 1 or 2, as it's a two-player game, indicating which player's turn it is.
@@ -26,6 +26,7 @@ class Mancala:
         self.p1_mancala_index = self.pits_per_player
         self.p2_pits_index = [self.pits_per_player+1, len(self.board)-1-1]
         self.p2_mancala_index = len(self.board)-1
+        self.game_over = False
         
         # Zeroing the Mancala for both players
         self.board[self.p1_mancala_index] = 0
@@ -268,3 +269,32 @@ class Mancala:
             self.winner = 0  # tie
 
         return True
+    
+#Beginning of 100 games:
+
+game = Mancala
+count = 0
+p1_win = 0
+p1_lose = 0
+tie = 0
+turn_num = 0
+while count != 100:
+    i = 0
+    while game.game_over == False:
+        game.play(game.random_move_generator)
+        i += 1
+    if game.winner == 1:
+        p1_win += 1
+    if game.winner == 2:
+        p1_lose += 1
+    else:
+        tie += 1
+    turn_num += i
+    count += 1
+print(p1_win)
+print(p1_lose)
+print(tie)
+print(turn_num/100)
+
+
+
