@@ -357,6 +357,7 @@ print(total_turns / games)
 ##############################################
 
 
+
 # code for building a tree: for our game tree, each node is the state of the boad, key is board state
 class Node:
     def __init__(self, key, p):
@@ -366,78 +367,26 @@ class Node:
 
 class Tree:
     
-    def __init__(self, rootkey, depth):
+    def __init__(self, rootkey):
         #create a new tree while setting root
-        self.root = rootkey
+        self.root = rootkey 
+        return
 
-    #this one might not be needed 
-    def checkTree(self, key, parentKey, root):
-        #Recursive function that searches through tree to find if parentKey exists
-        # note that 'root' input is not necessarily the root of the tree ('self')
-        # 'root' is just where to start looking for the right parentKey to add this new node
-        if root == None:
-            #if there is no root in tree
-            return False
-        if root.key == parentKey:
-            if root.left_child == None or root.right_child == None:
-                # the node 'root' is the parent you should add the new child node to
-                return root 
-            else:
-                print("Parent has two children, node not added.")
-                return False
-        else:
-            for child in root.getChildren():
-                # check 'root' node's children if they are the parent you're looking for
-                add_temp = self.checkTree(key, parentKey, child)
-                if add_temp:
-                    return add_temp
-
-                
-    #####################              
-    # Your code for the add method goes here.
-    #####################
+    def buildTree(self, state, previous, depth):
+        if depth == 0 or  Mancala.winning_eval():
+            return self.add(Mancala.play(pit), state)
+        valid_moves = []
+        node = Node(state, previous)
+        for i in range(12):
+                if Mancala.valid_move(i) != False:
+                    valid_moves.append(i)
+        for i in valid_moves:
+            next_move = Mancala.play(i)
+            child = self.buildTree(next_move, state, depth - 1)
+            self.add(child, state)
+        return node
+    
     def add(self, key, parentKey):
-        node = self.checkTree(key, parentKey,self.root)
-        if node is not False:
-            node.children.append(key)
+        node = Node(key, parentKey)
+        node.children.append(Node(key, parentKey))
 
-
-    #need to modify
-    def findNodeDelete(self, key, root):
-        if root == None:
-            return False
-        if key == root.key:
-            if root.left_child == None and root.right_child == None:
-                if root.parent.left_child.key == key:
-                    root.parent.left_child = None
-                elif root.parent.right_child.key == key:
-                    root.parent.right_child = None
-                root = None
-                return True
-            else:
-                print("Node not deleted, has children")
-                return False
-        else:
-            for child in root.getChildren():
-                delete_node = self.findNodeDelete(key, child)
-                if delete_node:
-                    return delete_node
-
-    def delete(self, key):
-        if self.root == None:
-            self.root = Node(key, None, None, None)
-        if key == self.root.key:
-            if self.root.left_child == None and self.root.right_child == None:
-                self.root = None
-                return True
-            else:
-                print("Node not deleted, has children")
-                return False
-        else:
-            for child in self.root.getChildren():
-                delete_node = self.findNodeDelete(key, child)
-                if delete_node:
-                    return delete_node
-
-        print("Parent not found." )
-        return False
