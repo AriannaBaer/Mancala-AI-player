@@ -1,11 +1,13 @@
 import random
 random.seed(109)
 
+# for the game tree 
+import copy
+
+
 #############################################
 # INITIAL IMPLEMENTATION (STUFF FROM HW6)
 ##############################################
-
-
 
 class Mancala:
     def __init__(self, pits_per_player=6, stones_per_pit = 4):
@@ -332,6 +334,9 @@ print(total_turns / games)
 ##############################################
 
 
+#############################################
+# Alpha BETA IMPLEMENTATION
+##############################################
 
 
 
@@ -355,38 +360,87 @@ print(total_turns / games)
 #############################################
 # GAME TREE IMPLEMENTATION
 ##############################################
+# For our game tree, each node will store:
+# - a Mancala game state (board + current_player, etc.)
+# - a reference to its parent
+# - the move (pit number) that led to this state from the parent
+# - a list of children
 
-
-
-# code for building a tree: for our game tree, each node is the state of the boad, key is board state
 class Node:
-    def __init__(self, key, p):
-        self.key = key
-        self.parent = p
-        children = []
+    def __init__(self, game_state, parent=None, move=None):
+        """
+        game_state: a Mancala object representing this position
+        parent: parent Node in the tree (or None for the root)
+        move: the pit (1..pits_per_player) played from the parent to reach this node
+        """
+        self.state = game_state
+        self.parent = parent
+        self.move = move
+        self.children = []
 
 class Tree:
     
-    def __init__(self, rootkey):
-        #create a new tree while setting root
-        self.root = rootkey 
-        return
+    def __init__(self, root_state):
+        """
+        root_state: a mancala object representing the root position.
+        """
+        self.root = Node(root_state)
 
-    def buildTree(self, state, previous, depth):
-        if depth == 0 or  Mancala.winning_eval():
-            return self.add(Mancala.play(pit), state)
-        valid_moves = []
-        node = Node(state, previous)
-        for i in range(12):
-                if Mancala.valid_move(i) != False:
-                    valid_moves.append(i)
-        for i in valid_moves:
-            next_move = Mancala.play(i)
-            child = self.buildTree(next_move, state, depth - 1)
-            self.add(child, state)
-        return node
-    
-    def add(self, key, parentKey):
-        node = Node(key, parentKey)
-        node.children.append(Node(key, parentKey))
+    def build_tree(self, node, depth):
+        """
+        recursively build the game tree starting from 'node' down to 'depth' plies.
+        This does NOT modify the original Mancala,
+        because we deep-copy the game state at each child.
+        """
+        if depth == 0:
+            return
 
+        game = node.state
+
+        #generate all legal moves (pits 1..pits_per_player)
+        #we create a loop here much like we did in our random moves function
+        moves = []
+        for pit in range(1, game.pits_per_player + 1):
+            if game.valid_move(pit):
+                moves.append(pit)
+
+        #no legal moves means this is a leaf node
+        if not moves:
+            return
+
+        #for each legal move, create a child node with the resulting game state
+        for pit in moves:
+            #deep copy the current game so we don't overwrite this node's state
+            next_game = copy.deepcopy(game)
+            next_game.play(pit)  # applies the move and switches current_player
+
+            child = Node(next_game, parent=node, move=pit)
+            node.children.append(child)
+
+            #recurse down one level
+            self.build_tree(child, depth - 1)
+
+
+
+#######################################
+# TEST CASES TO CHECK IF TREE IS WORKING
+########################################
+
+# if correct output will be:
+##     Number of children at root: 6
+##     Moves from root: [1, 2, 3, 4, 5, 6]
+
+
+
+#start from a fresh game
+root_game = Mancala()
+
+#create a tree with that as the root state
+game_tree = Tree(copy.deepcopy(root_game))
+
+#build the tree to depth 2 plies (you can change 2 to other small numbers)
+game_tree.build_tree(game_tree.root, depth=2)
+
+#how many children does the root have?
+print("Number of children at root:", len(game_tree.root.children))
+print("Moves from root:", [child.move for child in game_tree.root.children])
