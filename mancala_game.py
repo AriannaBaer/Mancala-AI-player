@@ -695,18 +695,16 @@ print("Average number of turns per game:", total_turns / games)
 
 #########################
 # DEPTH 10 CODE (8)
-games = 100
+games = 1
 ai_wins = 0
 random_wins = 0
 ties = 0
 total_turns = 0
 
-random.seed(109)
-
 for _ in range(games):
     game = Mancala()
     turns = 0
-    ai_player = 1  # Alpha-Beta AI is Player 1
+    ai_player = 1  
 
     while not game.game_over:
         if game.current_player == ai_player:
