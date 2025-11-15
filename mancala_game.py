@@ -1,6 +1,12 @@
 import random
 random.seed(109)
 
+#############################################
+# INITIAL IMPLEMENTATION (STUFF FROM HW6)
+##############################################
+
+
+
 class Mancala:
     def __init__(self, pits_per_player=6, stones_per_pit = 4):
         """
@@ -280,7 +286,12 @@ class Mancala:
             self.winner = 0  # tie
 
         return True
-    
+
+#############################################
+#CODE FOR INTERMEDIATE EVAL (RANDOM vs RANDOM PLAYER SIM)
+##############################################
+
+
 games = 100
 p1_win = p2_win = ties = 0
 total_turns = 0
@@ -315,6 +326,35 @@ print(ties)
 print("Average number of turns per game:")
 print(total_turns / games)
 
+
+#############################################
+# MIN MAX IMPLEMENTATION
+##############################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################
+# GAME TREE IMPLEMENTATION
+##############################################
 
 
 # code for building a tree: for our game tree, each node is the state of the boad, key is board state
