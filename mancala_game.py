@@ -180,7 +180,7 @@ class Mancala:
                 continue
             b[idx] += 1
             stones -= 1
-
+        
         #capture rule
         # if players pit is on players side and there is only one stone in that pit (aka last stone was in an empty pit)
         if player == 1 and p1_start <= idx <= p1_end and b[idx] == 1:
