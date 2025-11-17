@@ -1,11 +1,14 @@
 import random
 random.seed(109)
 
+# for the game tree 
+import copy
+
+
 #############################################
 # INITIAL IMPLEMENTATION (STUFF FROM HW6)
+# #1-2 on the write-up
 ##############################################
-
-
 
 class Mancala:
     def __init__(self, pits_per_player=6, stones_per_pit = 4):
@@ -287,10 +290,15 @@ class Mancala:
 
         return True
 
+
+
+
+
+
 #############################################
 #CODE FOR INTERMEDIATE EVAL (RANDOM vs RANDOM PLAYER SIM)
+# #3 on the writeup
 ##############################################
-
 
 games = 100
 p1_win = p2_win = ties = 0
@@ -317,19 +325,202 @@ for _ in range(games):
         ties += 1
     total_turns += turns
 
-print("Player 1 wins:") 
-print(p1_win)
-print("Player 2 wins:")
-print(p2_win)
-print("Number of ties") 
-print(ties)
-print("Average number of turns per game:")
-print(total_turns / games)
+print("Random vs Random sim results:")
+print("Player 1 wins:", p1_win)
+print("Player 2 wins:", p2_win)
+print("Ties:", ties)
+print("Player 1 win percentage:", p1_win / games * 100, "%")
+print("Average number of turns per game:", total_turns / games)
+
+
+
+
+
 
 
 #############################################
 # MIN MAX IMPLEMENTATION
 ##############################################
+# goal/ what to implement:
+    #First look ahead some number of piles (this is depth)
+        #Then at the bottom/leaf nodes assign a value using the utility function to the state
+            #Then minman works back up the tree
+                #Max levels pick the max child value
+                    #min levels pick the min child value
+                        #once we hit the root, the move that leads to the highest max value is chosen
+
+
+#start with the helper functions
+def legal_moves(game):
+    """
+    returns the total list of moves so we dont have to make a loop like we did in random_move_generator
+    and when building the tree
+    """
+    return [pit for pit in range(1, game.pits_per_player + 1) if game.valid_move(pit)]
+
+
+def evaluate_utility(game, max_player):
+    """
+    does the utility function for us
+    Utility = stones in Max's mancala - stones in Min's mancala.
+    """
+    p1_store = game.p1_mancala_index
+    p2_store = game.p2_mancala_index
+
+    #if AI player is 1 or 2
+    if max_player == 1:
+        return game.board[p1_store] - game.board[p2_store]
+    else:
+        return game.board[p2_store] - game.board[p1_store]
+    
+
+#logic of the recursive function/basically what i am trying to do
+    #Find all legal moves for player
+        #base case is if game is already over/depth = 0
+            #if base case just evaluate utility function
+        #if max player == current player
+            #copy the game, use play function, recurse, returns the maximum of those values
+        #same idea if not max player but the minimum of those values
+
+def minimax_value(game, depth, max_player):
+    """
+    Returns the number the utility function calculated
+    """
+    #call our helper function for a list of legal moves
+    moves = legal_moves(game)
+
+    #Base cases: when game is already over, no legal moves, or depth = 0
+    if game.game_over:
+        return evaluate_utility(game, max_player)
+
+    if not moves:
+        terminal_copy = copy.deepcopy(game)
+        terminal_copy.winning_eval()
+        return evaluate_utility(terminal_copy, max_player)
+
+    if depth == 0:
+        return evaluate_utility(game, max_player)
+
+
+    is_max_turn = (game.current_player == max_player)
+
+
+    if is_max_turn:
+        #chooses the move with highest value
+        #we assign the value to negative infinity so that any real move value will be higher
+        best_val = float('-inf')
+        for move in moves:
+            child_game = copy.deepcopy(game)
+            child_game.play(move)
+            #use recursion here
+            val = minimax_value(child_game, depth - 1, max_player)
+            if val > best_val:
+                best_val = val
+        return best_val
+    else:
+        #if player is min
+        #we want the choice with the lowest value so we set best_val to the highest possible value which is infinity
+        best_val = float('inf')
+        for move in moves:
+            child_game = copy.deepcopy(game)
+            child_game.play(move)
+            val = minimax_value(child_game, depth - 1, max_player)
+            if val < best_val:
+                best_val = val
+        return best_val
+
+
+
+
+
+
+
+##############################################
+# AI MIN MAX VS RANDOM PLAYER SIM
+# 4-5 on the project write up
+##############################################
+
+#What percentage of games does each player (AI or random) win?
+#On average, how many moves does it take to win?
+
+#Play 100 games with the random player against the minimax AI player at a depth of 5 plies
+
+def minimax_ai_move(game, depth):
+    """
+    Choose the best move for the *current player* in 'game' using minimax.
+    returns a pit number, or none if no legal moves.
+    """
+    max_player = game.current_player
+    moves = legal_moves(game)
+
+    if not moves:
+        return None  
+
+    best_val = float('-inf')
+    best_moves = []
+
+    for move in moves:
+        #simulate this move
+        child_game = copy.deepcopy(game)
+        child_game.play(move)
+
+        #look ahead from the resulting state
+        val = minimax_value(child_game, depth - 1, max_player)
+
+        #update best move list
+        if val > best_val:
+            best_val = val
+            best_moves = [move]
+        elif val == best_val:
+            best_moves.append(move)
+
+    #if multiple moves tie, pick one randomly
+    return random.choice(best_moves)
+
+
+#Code for the simulation very similar to RANDOM VS RANDOM 
+games = 100
+ai_wins = 0
+random_wins = 0
+ties = 0
+total_turns = 0
+
+for _ in range(games):
+    game = Mancala()
+    turns = 0
+
+    #set max player to 1
+    ai_player = 1
+
+    while not game.game_over:
+        if game.current_player == ai_player:
+            move = minimax_ai_move(game, depth=5)
+        else:
+            move = game.random_move_generator()
+
+        if move is None:
+            game.winning_eval()
+            break
+
+        game.play(move)
+        turns += 1
+
+    #add up the results
+    if game.winner == ai_player:
+        ai_wins += 1
+    elif game.winner == 0:
+        ties += 1
+    else:
+        random_wins += 1
+
+    total_turns += turns
+
+print("MinMax sim results:")
+print("Minimax AI wins:", ai_wins)
+print("Random wins:", random_wins)
+print("Ties:", ties)
+print("AI win percentage:", ai_wins / games * 100, "%")
+print("Average number of turns per game:", total_turns / games)
 
 
 
@@ -339,14 +530,210 @@ print(total_turns / games)
 
 
 
+#############################################
+# Alpha BETA IMPLEMENTATION
+# #6 on the write up
+#############################################
+
+# what is alpha beta pruning:
+    #same idea as minmax except with one caveat
+    #When evaluating a branch,
+    #if you discover that:
+        #Max already has a move ≥ some value (alpha) AND Min can force a value ≤ some value (beta)
+        #Then some branches will NEVER affect the final answer.
+        #so you stop exploring them aka you prune them.
+
+
+#basically min max but with these two new parameters
+#alpha = “best value MAX can guarantee so far”
+#beta = “best value MIN can guarantee so far”
+
+def alphabeta_value(game, depth, alpha, beta, max_player):
+    """
+    copied same function from minmax but changed up the parameters and added a couple lines
+    """
+    #helper func
+    moves = legal_moves(game)
+
+   #Base cases: when game is already over, no legal moves, or depth = 0
+    if game.game_over:
+        return evaluate_utility(game, max_player)
+
+    if not moves:
+        terminal_copy = copy.deepcopy(game)
+        terminal_copy.winning_eval()
+        return evaluate_utility(terminal_copy, max_player)
+
+    if depth == 0:
+        return evaluate_utility(game, max_player)
+
+    
+
+    is_max_turn = (game.current_player == max_player)
+
+    if is_max_turn:
+        value = float('-inf')
+        for move in moves:
+            child = copy.deepcopy(game)
+            child.play(move)
+
+            #added/ different from minmax
+            value = max(value,
+                        alphabeta_value(child, depth - 1, alpha, beta, max_player))
+
+            alpha = max(alpha, value)
+
+            #this part is added
+            if beta <= alpha:
+                break
+
+        return value
+
+    else:
+        value = float('inf')
+        for move in moves:
+            child = copy.deepcopy(game)
+            child.play(move)
+
+            #same thing as above/ the two-ish lines added/ different from min max
+            value = min(value,
+                        alphabeta_value(child, depth - 1, alpha, beta, max_player))
+
+            beta = min(beta, value)
+
+            # prune:
+            if beta <= alpha:
+                break
+
+        return value
 
 
 
+###############################################
+# AI ALPHA BETA VS RANDOM PLAYER SIM
+# 7-8 on the project write up
+###############################################
+
+#The move selector necessary for the random sim/basically same as minmax selector
+
+def alphabeta_ai_move(game, depth):
+    max_player = game.current_player
+    moves = legal_moves(game)
+
+    if not moves:
+        return None
+
+    best_val = float('-inf')
+    best_moves = []
+
+    alpha = float('-inf')
+    beta = float('inf')
+
+    for move in moves:
+        child = copy.deepcopy(game)
+        child.play(move)
+
+        val = alphabeta_value(child, depth - 1, alpha, beta, max_player)
+
+        # track best move(s)
+        if val > best_val:
+            best_val = val
+            best_moves = [move]
+        elif val == best_val:
+            best_moves.append(move)
+
+        #update alpha at the root- this is different then the minmax
+        alpha = max(alpha, val)
+
+    return random.choice(best_moves)
 
 
 
+##################
+# DEPTH 5 CODE (7)
+games = 100
+ai_wins = 0
+random_wins = 0
+ties = 0
+total_turns = 0
 
 
+for _ in range(games):
+    game = Mancala()
+    turns = 0
+    ai_player = 1 
+
+    while not game.game_over:
+        if game.current_player == ai_player:
+            move = alphabeta_ai_move(game, depth=5)
+        else:
+            move = game.random_move_generator()
+
+        if move is None:
+            game.winning_eval()
+            break
+
+        game.play(move)
+        turns += 1
+
+    if game.winner == ai_player:
+        ai_wins += 1
+    elif game.winner == 0:
+        ties += 1
+    else:
+        random_wins += 1
+
+    total_turns += turns
+
+print("Alpha-Beta sim results (depth 5):")
+print("Alpha-Beta AI wins:", ai_wins)
+print("Random wins:", random_wins)
+print("Ties:", ties)
+print("AI win percentage:", ai_wins / games * 100, "%")
+print("Average number of turns per game:", total_turns / games)
+
+
+#########################
+# DEPTH 10 CODE (8)
+games = 1
+ai_wins = 0
+random_wins = 0
+ties = 0
+total_turns = 0
+
+for _ in range(games):
+    game = Mancala()
+    turns = 0
+    ai_player = 1  
+
+    while not game.game_over:
+        if game.current_player == ai_player:
+            move = alphabeta_ai_move(game, depth=10)
+        else:
+            move = game.random_move_generator()
+
+        if move is None:
+            game.winning_eval()
+            break
+
+        game.play(move)
+        turns += 1
+
+    if game.winner == ai_player:
+        ai_wins += 1
+    elif game.winner == 0:
+        ties += 1
+    else:
+        random_wins += 1
+
+    total_turns += turns
+
+print("Alpha-Beta sim results (depth 10):")
+print("Alpha-Beta AI wins:", ai_wins)
+print("Random wins:", random_wins)
+print("Ties:", ties)
+print("AI win percentage:", ai_wins / games * 100, "%")
+print("Average number of turns per game:", total_turns / games)
 
 
 
@@ -355,89 +742,103 @@ print(total_turns / games)
 #############################################
 # GAME TREE IMPLEMENTATION
 ##############################################
+# For our game tree, each node will store:
+# - a Mancala game state (board + current_player, etc.)
+# - a reference to its parent
+# - the move (pit number) that led to this state from the parent
+# - a list of children
 
 
-# code for building a tree: for our game tree, each node is the state of the boad, key is board state
+
+#logic i used:
+#build_tree(node, depth):
+
+    #If depth is 0 → stop expanding
+    #Else:
+    #Look at the node’s game state
+    #Generate legal pit moves for the current player
+    #If no moves → stop (leaf)
+    #For each move:
+    #Deep copy the game state
+    #Play that move on the copy (so board + current_player update exactly as in your game code)
+    #Wrap the new state in a Node.
+    #Attach to node.children.
+    #Recurse with depth-1.
+
+
 class Node:
-    def __init__(self, key, p):
-        self.key = key
-        self.parent = p
-        children = []
+    def __init__(self, game_state, parent=None, move=None):
+        """
+        game_state: a Mancala object representing this position
+        parent: parent Node in the tree
+        move: the pit  played from the parent to reach this node
+        """
+        self.state = game_state
+        self.parent = parent
+        self.move = move
+        self.children = []
 
 class Tree:
     
-    def __init__(self, rootkey, depth):
-        #create a new tree while setting root
-        self.root = rootkey
+    def __init__(self, root_state):
+        self.root = Node(root_state)
 
-    #this one might not be needed 
-    def checkTree(self, key, parentKey, root):
-        #Recursive function that searches through tree to find if parentKey exists
-        # note that 'root' input is not necessarily the root of the tree ('self')
-        # 'root' is just where to start looking for the right parentKey to add this new node
-        if root == None:
-            #if there is no root in tree
-            return False
-        if root.key == parentKey:
-            if root.left_child == None or root.right_child == None:
-                # the node 'root' is the parent you should add the new child node to
-                return root 
-            else:
-                print("Parent has two children, node not added.")
-                return False
-        else:
-            for child in root.getChildren():
-                # check 'root' node's children if they are the parent you're looking for
-                add_temp = self.checkTree(key, parentKey, child)
-                if add_temp:
-                    return add_temp
+    def build_tree(self, node, depth):
+        """
+        recursively build the game tree starting from 'node' down to 'depth' plies.
+        doesn't  modify the original Mancala
+        because we deep-copy the game state at each child.
+        """
+        if depth == 0:
+            return
 
-                
-    #####################              
-    # Your code for the add method goes here.
-    #####################
-    def add(self, key, parentKey):
-        node = self.checkTree(key, parentKey,self.root)
-        if node is not False:
-            node.children.append(key)
+        game = node.state
+
+        #generate all legal moves (pits 1..pits_per_player)
+        #we create a loop here much like we did in our random moves function
+        moves = []
+        for pit in range(1, game.pits_per_player + 1):
+            if game.valid_move(pit):
+                moves.append(pit)
+
+        #no legal moves means this is a leaf node
+        if not moves:
+            return
+
+        #for each legal move, create a child node with the resulting game state
+        for pit in moves:
+            #deep copy the current game so we don't overwrite this node's state
+            next_game = copy.deepcopy(game)
+            next_game.play(pit)  # applies the move and switches current_player
+
+            child = Node(next_game, parent=node, move=pit)
+            node.children.append(child)
+
+            #recurse down one level
+            self.build_tree(child, depth - 1)
 
 
-    #need to modify
-    def findNodeDelete(self, key, root):
-        if root == None:
-            return False
-        if key == root.key:
-            if root.left_child == None and root.right_child == None:
-                if root.parent.left_child.key == key:
-                    root.parent.left_child = None
-                elif root.parent.right_child.key == key:
-                    root.parent.right_child = None
-                root = None
-                return True
-            else:
-                print("Node not deleted, has children")
-                return False
-        else:
-            for child in root.getChildren():
-                delete_node = self.findNodeDelete(key, child)
-                if delete_node:
-                    return delete_node
 
-    def delete(self, key):
-        if self.root == None:
-            self.root = Node(key, None, None, None)
-        if key == self.root.key:
-            if self.root.left_child == None and self.root.right_child == None:
-                self.root = None
-                return True
-            else:
-                print("Node not deleted, has children")
-                return False
-        else:
-            for child in self.root.getChildren():
-                delete_node = self.findNodeDelete(key, child)
-                if delete_node:
-                    return delete_node
+#######################################
+# TEST CASES TO CHECK IF TREE IS WORKING
+########################################
 
-        print("Parent not found." )
-        return False
+# if correct output will be:
+##     Number of children at root: 6
+##     Moves from root: [1, 2, 3, 4, 5, 6]
+
+
+
+#start from a fresh game
+root_game = Mancala()
+
+#create a tree with that as the root state
+game_tree = Tree(copy.deepcopy(root_game))
+
+#build the tree to depth 2 plies (you can change 2 to other small numbers)
+game_tree.build_tree(game_tree.root, depth=2)
+
+#how many children does the root have?
+print("test cases that game tree is running properly")
+print("Number of children at root:", len(game_tree.root.children))
+print("Moves from root:", [child.move for child in game_tree.root.children])
