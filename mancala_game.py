@@ -695,7 +695,7 @@ print("Average number of turns per game:", total_turns / games)
 
 #########################
 # DEPTH 10 CODE (8)
-games = 1
+games = 100
 ai_wins = 0
 random_wins = 0
 ties = 0
