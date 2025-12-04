@@ -156,6 +156,8 @@ class Mancala:
         my_store = p1_store if player == 1 else p2_store
         opp_store = p2_store if player == 1 else p1_store
 
+        continuation = False
+
 
         #to match the expected image
         #commenting out so we can just see random stuff
@@ -180,6 +182,8 @@ class Mancala:
                 continue
             b[idx] += 1
             stones -= 1
+        if idx == my_store:
+            continuation = True
         
         #capture rule
         # if players pit is on players side and there is only one stone in that pit (aka last stone was in an empty pit)
@@ -201,8 +205,8 @@ class Mancala:
                 b[my_store] += captured + 1
                 b[idx] = 0
                 b[opp] = 0
-            
-        self.current_player = 2 if player == 1 else 1
+        if continuation == False:
+            self.current_player = 2 if player == 1 else 1
         return self.board
     
     def winning_eval(self):
@@ -809,11 +813,26 @@ class Tree:
         for pit in moves:
             #deep copy the current game so we don't overwrite this node's state
             next_game = copy.deepcopy(game)
+            player = next_game.current_player
             next_game.play(pit)  # applies the move and switches current_player
-
-            child = Node(next_game, parent=node, move=pit)
+            final_state = next_game
+            #if current player doesnt switch, come up with new list of valid moves, add node for each one
+            while player == final_state.current_player:
+                next_moves = []
+                for pit in range(1, final_state.pits_per_player + 1):
+                    if final_state.valid_move(pit):
+                        next_moves.append(pit)
+                if not next_moves:
+                    child = Node(final_state, parent=node, move=pit)
+                    node.children.append(child)
+                    return
+                for pit in next_moves:
+                    next_next_game = copy.deepcopy(final_state)
+                    player = next_next_game.current_player
+                    next_next_game.play(pit)
+                    final_state = next_next_game 
+            child = Node(final_state, parent=node, move=pit)
             node.children.append(child)
-
             #recurse down one level
             self.build_tree(child, depth - 1)
 
